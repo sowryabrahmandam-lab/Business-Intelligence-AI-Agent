@@ -1,9 +1,8 @@
-﻿import os
+import os
 import json
 import logging
 from typing import Dict, List, Any, Optional
 import pandas as pd
-from openai import OpenAI
 
 from services.analytics import AnalyticsEngine
 
@@ -132,14 +131,14 @@ SYSTEM_PROMPT = """You are an elite AI Business Intelligence & Strategy Advisor 
 Your goal is to answer founder questions using live, deterministic business analytics retrieved from monday.com boards (Deals and Work Orders).
 
 CRITICAL RULES:
-1. ALWAYS use the provided tool functions to compute deterministic numbers. DO NOT invent, hallucinate, or guess numbers.
+1. ALWAYS use the provided deterministic calculations. DO NOT invent, hallucinate, or guess numbers.
 2. monday.com is the single source of truth. All calculations are executed deterministically by Python.
 3. Structure your response in a crisp, founder-level executive format:
    - Executive Summary
-   - Key Metrics (with currency format ₹ and exact counts)
+   - Key Metrics (with exact counts and currency in INR format ₹)
    - Insights
    - Risks & Bottlenecks
-   - Data Quality / Forecast Confidence (mention any missing dates/values that affect confidence)
+   - Data Quality / Forecast Confidence
    - Recommended Actions
 4. For Leadership Update queries, strictly format as:
    # Leadership Update
@@ -151,15 +150,12 @@ CRITICAL RULES:
    ## Risks
    ## Data Quality
    ## Recommended Actions
-5. If the user asks an ambiguous question (e.g., 'How are sales doing?'), provide a concise high-level synthesis across pipeline and revenue, and offer targeted follow-up areas.
-6. Clearly distinguish between Deal Pipeline (forward-looking/expected value), Billed Revenue, Cash Collected, and Receivables.
+5. Clearly distinguish between Deal Pipeline (forward-looking/expected value), Billed Revenue, Cash Collected, and Receivables.
 """
 
 class BIAgent:
-    def __init__(self, analytics: AnalyticsEngine, api_key: Optional[str] = None):
+    def __init__(self, analytics: AnalyticsEngine):
         self.analytics = analytics
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY", "")
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
 
     def execute_tool(self, tool_name: str, args: Dict[str, Any], deals_df: pd.DataFrame, wo_df: pd.DataFrame, dq_report: Dict[str, Any]) -> Dict[str, Any]:
         """Executes the Python deterministic tool function matching the tool_name."""
@@ -180,8 +176,27 @@ class BIAgent:
         else:
             return {"error": f"Unknown tool: {tool_name}"}
 
-    def generate_deterministic_fallback(self, query: str, tool_name: str, tool_result: Dict[str, Any], dq_report: Dict[str, Any]) -> str:
-        """Fallback deterministic response generator if OpenAI API is unavailable or unconfigured."""
+    def _select_tool_heuristically(self, msg: str) -> str:
+        msg_lower = msg.lower()
+        if "leader" in msg_lower or "executive" in msg_lower or "summary" in msg_lower or "risk" in msg_lower:
+            return "leadership_summary"
+        elif "work order" in msg_lower or "delay" in msg_lower or "operation" in msg_lower:
+            return "work_order_analysis"
+        elif "which sector" in msg_lower or "sector performance" in msg_lower or "compare sector" in msg_lower:
+            return "sector_analysis"
+        elif "sector" in msg_lower and ("pipeline" in msg_lower or "deal" in msg_lower):
+            return "pipeline_health"
+        elif "revenue" in msg_lower or "receivable" in msg_lower or "collect" in msg_lower or "bill" in msg_lower:
+            return "revenue_analysis"
+        elif "quality" in msg_lower or "duplicate" in msg_lower or "warning" in msg_lower:
+            return "data_quality_report"
+        elif "quarter" in msg_lower or "q1" in msg_lower or "q2" in msg_lower or "q3" in msg_lower or "q4" in msg_lower:
+            return "quarter_analysis"
+        else:
+            return "pipeline_health"
+
+    def generate_deterministic_fallback(self, query: str, tool_name: str, tool_result: Dict[str, Any], dq_report: Dict[str, Any], deals_df: Optional[pd.DataFrame] = None) -> str:
+        """Deterministic response generator providing executive-ready formatted answers."""
         if tool_name == "pipeline_health":
             total = tool_result.get("total_deals", 0)
             open_count = tool_result.get("open_deals_count", 0)
@@ -199,10 +214,126 @@ Pipeline analysis for **{tool_result.get('period', 'All Time')}** across **{tool
 - **Win Rate**: {win_note}
 
 ### Insights
-- Active pipeline stands at ₹{pipe_val:,.2f} with weighted probability-adjusted expectation of ₹{exp_val:,.2f}.
+- Active pipeline stands at ₹{pipe_val:,.2f} with probability-weighted expectation of ₹{exp_val:,.2f}.
+
+### Risks
+- Deals with unpopulated target close dates require account team attention.
+
+### Recommended Actions
+- Focus on accelerating late-stage deals in highest pipeline sectors.
+"""
+        elif tool_name == "quarter_analysis":
+            p_label = tool_result.get("period_label", "Quarter")
+            d_range = tool_result.get("date_range", "")
+            pipe = tool_result.get("pipeline", {})
+            rev = tool_result.get("revenue", {})
+            ops = tool_result.get("operations", {})
+
+            pipe_val = pipe.get("total_pipeline_value", 0.0)
+            exp_val = pipe.get("expected_pipeline_value", 0.0)
+            open_cnt = pipe.get("open_deals_count", 0)
+
+            return f"""### Executive Summary
+Quarterly performance overview for **{p_label}** ({d_range}).
+
+### Key Metrics
+- **Active Pipeline Deals ({p_label})**: {open_cnt}
+- **Quarter Pipeline Value**: ₹{pipe_val:,.2f}
+- **Quarter Expected Value**: ₹{exp_val:,.2f}
+- **Billed Value**: ₹{rev.get('billed_value_excl_gst', 0):,.2f}
+- **Cash Collected**: ₹{rev.get('collected_amount', 0):,.2f}
+- **Active Work Orders**: {ops.get('active_work_orders', 0)}
+- **Delayed Work Orders**: {ops.get('delayed_work_orders_count', 0)}
+
+### Insights
+- Performance for {p_label} reflects active work execution and commercial pipeline movement.
 
 ### Data Quality
-- Deals with missing value/dates are monitored in the data quality logs.
+- Forecast confidence is governed by deals with active close dates recorded in monday.com.
+"""
+        elif tool_name == "revenue_analysis":
+            rev = tool_result
+            return f"""### Executive Summary
+Revenue and cash flow analysis across active deals and executed work orders.
+
+### Key Metrics
+- **Closed Won Deal Value**: ₹{rev.get('closed_won_deal_value', 0):,.2f}
+- **Billed Value (Excl GST)**: ₹{rev.get('billed_value_excl_gst', 0):,.2f}
+- **Cash Collected**: ₹{rev.get('collected_amount', 0):,.2f}
+- **Outstanding Receivables**: ₹{rev.get('amount_receivable', 0):,.2f}
+- **Unbilled Contract Value**: ₹{rev.get('amount_to_be_billed', 0):,.2f}
+- **Collection Efficiency**: {rev.get('collection_efficiency_pct', 'N/A')}%
+
+### Insights
+- Total collections stand at ₹{rev.get('collected_amount', 0):,.2f} with a collection efficiency of {rev.get('collection_efficiency_pct', 'N/A')}%.
+
+### Risks
+- Outstanding receivables of ₹{rev.get('amount_receivable', 0):,.2f} need immediate collection focus.
+
+### Recommended Actions
+- Prioritize high-value accounts with outstanding receivables.
+"""
+        elif tool_name == "work_order_analysis":
+            ops = tool_result
+            delayed = ops.get('delayed_work_orders', [])
+            delayed_str = "\n".join([f"- **{d['serial_no']}** ({d['deal_name']} - {d['sector']}): Due {d['target_end_date']}" for d in delayed[:5]])
+            return f"""### Executive Summary
+Operational analysis of work order execution, completion rates, and delivery delays.
+
+### Key Metrics
+- **Total Work Orders**: {ops.get('total_work_orders', 0)}
+- **Active / Ongoing Projects**: {ops.get('active_work_orders', 0)}
+- **Completed Projects**: {ops.get('completed_work_orders', 0)}
+- **Delayed Work Orders**: {ops.get('delayed_work_orders_count', 0)}
+
+### Key Delays
+{delayed_str if delayed else '- No delayed orders detected.'}
+
+### Insights
+- Operational throughput has successfully delivered {ops.get('completed_work_orders', 0)} projects, with {ops.get('active_work_orders', 0)} projects actively in progress.
+
+### Recommended Actions
+- Unblock critical paths for the {ops.get('delayed_work_orders_count', 0)} delayed projects.
+"""
+        elif tool_name == "sector_analysis":
+            sec_dict = tool_result.get("sectors", {})
+            rows = []
+            for name, d in list(sec_dict.items())[:6]:
+                rows.append(f"- **{name}**: Pipeline ₹{d['pipeline_value']:,.2f} | Billed ₹{d['billed_amount']:,.2f} | Active WOs: {d['active_projects']}")
+            return f"""### Executive Summary
+Cross-sector comparison across commercial deal pipeline and operational execution.
+
+### Key Metrics
+- **Top Pipeline Sector**: {tool_result.get('top_pipeline_sector', 'N/A')}
+- **Top Revenue Sector**: {tool_result.get('top_revenue_sector', 'N/A')}
+
+### Sector Highlights
+{chr(10).join(rows)}
+
+### Recommended Actions
+- Scale resource allocation for top-performing pipeline sectors.
+"""
+        elif tool_name == "data_quality_report":
+            deals_dq = tool_result.get("deals", {})
+            wo_dq = tool_result.get("work_orders", {})
+            warnings = tool_result.get("warnings", [])
+            return f"""### Executive Summary
+Data Quality & System Integrity Audit across monday.com boards.
+
+### Deals Board Audit
+- **Total Records Ingested**: {deals_dq.get('total_records', 0)}
+- **Missing Deal Values**: {deals_dq.get('missing_deal_value_count', 0)}
+- **Missing / Ambiguous Dates**: {deals_dq.get('missing_effective_dates_count', 0)}
+- **Potential Duplicate Deals**: {deals_dq.get('potential_duplicates_count', 0)}
+
+### Work Orders Board Audit
+- **Total Records Ingested**: {wo_dq.get('total_records', 0)}
+- **Missing Receivables**: {wo_dq.get('missing_receivables_count', 0)}
+- **Missing Collections**: {wo_dq.get('missing_collected_count', 0)}
+- **Potential Duplicate Orders**: {wo_dq.get('potential_duplicates_count', 0)}
+
+### Impact on Insights
+- Active pipeline figures are computed accurately, with warnings logged for incomplete close dates.
 """
         elif tool_name == "leadership_summary":
             pipe = tool_result.get("pipeline", {})
@@ -211,7 +342,7 @@ Pipeline analysis for **{tool_result.get('period', 'All Time')}** across **{tool
             return f"""# Leadership Update
 
 ## Executive Summary
-Comprehensive business intelligence overview across Deals and Work Orders.
+Comprehensive business intelligence overview across Deals and Work Orders boards.
 
 ## Revenue
 - **Closed Won Deals**: ₹{rev.get('closed_won_deal_value', 0):,.2f}
@@ -241,126 +372,119 @@ Comprehensive business intelligence overview across Deals and Work Orders.
 - Review operational bottlenecks for any delayed work orders.
 """
         else:
-            return f"### Analytical Summary\n\nLive Results:\n```json\n{json.dumps(tool_result, indent=2)}\n```"
+            return f"### Analytical Report\n\n```json\n{json.dumps(tool_result, indent=2)}\n```"
 
-    def answer_question(self, user_message: str, deals_df: pd.DataFrame, wo_df: pd.DataFrame, dq_report: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Main method to process a user query: selects tool -> executes deterministic calculation -> generates LLM response.
-        """
-        # Re-check API key if changed dynamically
-        current_api_key = os.getenv("OPENAI_API_KEY", self.api_key)
-        if current_api_key and (not self.client or self.api_key != current_api_key):
-            self.api_key = current_api_key
-            self.client = OpenAI(api_key=self.api_key)
-
-        sources = []
-        data_quality_warnings = []
-        
-        # If OpenAI client is not initialized, choose tool by keyword matching and return deterministic fallback
-        if not self.client or not self.api_key:
-            msg_lower = user_message.lower()
-            if "leader" in msg_lower or "executive" in msg_lower or "summary" in msg_lower:
-                tool_name = "leadership_summary"
-                sources = ["Deals", "Work Orders"]
-            elif "work order" in msg_lower or "delay" in msg_lower or "operation" in msg_lower:
-                tool_name = "work_order_analysis"
-                sources = ["Work Orders"]
-            elif "sector" in msg_lower:
-                tool_name = "sector_analysis"
-                sources = ["Deals", "Work Orders"]
-            elif "revenue" in msg_lower or "receivable" in msg_lower or "collect" in msg_lower or "bill" in msg_lower:
-                tool_name = "revenue_analysis"
-                sources = ["Work Orders", "Deals"]
-            elif "quality" in msg_lower or "duplicate" in msg_lower:
-                tool_name = "data_quality_report"
-                sources = ["Deals", "Work Orders"]
-            elif "quarter" in msg_lower or "q1" in msg_lower or "q2" in msg_lower or "q3" in msg_lower or "q4" in msg_lower:
-                tool_name = "quarter_analysis"
-                sources = ["Deals", "Work Orders"]
-            else:
-                tool_name = "pipeline_health"
-                sources = ["Deals"]
-
-            tool_res = self.execute_tool(tool_name, {}, deals_df, wo_df, dq_report)
-            answer_text = self.generate_deterministic_fallback(user_message, tool_name, tool_res, dq_report)
-            return {
-                "answer": answer_text,
-                "sources": sources,
-                "data_quality": dq_report.get("warnings", [])
-            }
-
-        # Use OpenAI tool calling
+    def _call_gemini(self, prompt: str, tool_name: str, tool_data: Dict[str, Any], api_key: str) -> Optional[str]:
+        """Calls Google Gemini with deterministic analytics data to generate founder insights."""
         try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            
+            full_prompt = f"""{SYSTEM_PROMPT}
+
+User Question: {prompt}
+
+Live monday.com Deterministic Analytics Data:
+```json
+{json.dumps(tool_data, indent=2)}
+```
+
+Generate the founder-level response strictly based on this data without inventing numbers.
+"""
+            response = model.generate_content(full_prompt)
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            logger.warning(f"Gemini LLM call failed ({e}), falling back to deterministic template.")
+        return None
+
+    def _call_openai(self, prompt: str, deals_df: pd.DataFrame, wo_df: pd.DataFrame, dq_report: Dict[str, Any], api_key: str) -> Optional[Dict[str, Any]]:
+        """Calls OpenAI with function calling."""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
             messages = [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
+                {"role": "user", "content": prompt}
             ]
-
-            response = self.client.chat.completions.create(
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
                 tools=TOOLS_DEFINITION,
                 tool_choice="auto",
                 temperature=0.2
             )
-
             response_message = response.choices[0].message
             tool_calls = response_message.tool_calls
-
+            sources = []
             if tool_calls:
                 messages.append(response_message)
                 for tool_call in tool_calls:
                     fn_name = tool_call.function.name
                     fn_args = json.loads(tool_call.function.arguments or "{}")
-
-                    # Map sources
-                    if fn_name in ["pipeline_health"]:
-                        sources.append("Deals")
-                    elif fn_name in ["work_order_analysis"]:
-                        sources.append("Work Orders")
-                    else:
-                        sources.extend(["Deals", "Work Orders"])
-
+                    sources.append("Deals" if "deal" in fn_name or "pipe" in fn_name else "Work Orders")
                     tool_output = self.execute_tool(fn_name, fn_args, deals_df, wo_df, dq_report)
-
                     messages.append({
                         "tool_call_id": tool_call.id,
                         "role": "tool",
                         "name": fn_name,
                         "content": json.dumps(tool_output)
                     })
-
-                # Second completion to formulate response
-                second_response = self.client.chat.completions.create(
+                second_response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=messages,
                     temperature=0.2
                 )
-                final_answer = second_response.choices[0].message.content
                 return {
-                    "answer": final_answer,
-                    "sources": list(set(sources)),
-                    "data_quality": dq_report.get("warnings", [])
+                    "answer": second_response.choices[0].message.content,
+                    "sources": list(set(sources)) or ["Deals", "Work Orders"]
                 }
-            else:
+        except Exception as e:
+            logger.warning(f"OpenAI call failed: {e}")
+        return None
+
+    def answer_question(self, user_message: str, deals_df: pd.DataFrame, wo_df: pd.DataFrame, dq_report: Dict[str, Any]) -> Dict[str, Any]:
+        openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+        gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+        tool_name = self._select_tool_heuristically(user_message)
+        
+        # Sector specific extraction
+        args: Dict[str, Any] = {}
+        msg_lower = user_message.lower()
+        for sec in ["energy", "mining", "infrastructure", "agriculture", "telecom", "utilities", "defense", "powerline", "railways"]:
+            if sec in msg_lower:
+                args["sector"] = sec
+                break
+
+        sources = ["Deals"] if tool_name == "pipeline_health" else (["Work Orders"] if tool_name == "work_order_analysis" else ["Deals", "Work Orders"])
+        tool_res = self.execute_tool(tool_name, args, deals_df, wo_df, dq_report)
+
+        # 1. Try OpenAI if key is valid
+        if openai_key and openai_key.startswith("sk-"):
+            oa_res = self._call_openai(user_message, deals_df, wo_df, dq_report, openai_key)
+            if oa_res and oa_res.get("answer"):
                 return {
-                    "answer": response_message.content,
-                    "sources": ["Deals", "Work Orders"],
+                    "answer": oa_res["answer"],
+                    "sources": oa_res.get("sources", sources),
                     "data_quality": dq_report.get("warnings", [])
                 }
 
-        except Exception as e:
-            logger.error(f"OpenAI agent error: {e}")
-            # Fallback to deterministic generator
-            tool_name = "pipeline_health"
-            if "leader" in user_message.lower():
-                tool_name = "leadership_summary"
-            elif "revenue" in user_message.lower() or "receivable" in user_message.lower():
-                tool_name = "revenue_analysis"
-            tool_res = self.execute_tool(tool_name, {}, deals_df, wo_df, dq_report)
-            fallback_ans = self.generate_deterministic_fallback(user_message, tool_name, tool_res, dq_report)
-            return {
-                "answer": fallback_ans + f"\n\n*(Note: Generated via deterministic analytics engine due to LLM interface notice: {str(e)})*",
-                "sources": ["Deals", "Work Orders"],
-                "data_quality": dq_report.get("warnings", [])
-            }
+        # 2. Try Gemini if key is provided
+        if gemini_key:
+            gem_text = self._call_gemini(user_message, tool_name, tool_res, gemini_key)
+            if gem_text:
+                return {
+                    "answer": gem_text,
+                    "sources": sources,
+                    "data_quality": dq_report.get("warnings", [])
+                }
+
+        # 3. Deterministic template fallback
+        fallback_ans = self.generate_deterministic_fallback(user_message, tool_name, tool_res, dq_report, deals_df=deals_df)
+        return {
+            "answer": fallback_ans,
+            "sources": sources,
+            "data_quality": dq_report.get("warnings", [])
+        }
