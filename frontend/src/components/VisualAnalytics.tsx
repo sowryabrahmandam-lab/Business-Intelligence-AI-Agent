@@ -105,9 +105,9 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             </div>
             <TrendingUp className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={sectors} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+              <ComposedChart data={sectors} margin={{ top: 10, right: 10, left: 10, bottom: 25 }}>
                 <Grid horizontal strokeDasharray="3 3" />
                 <BarXAxis dataKey="sector" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" />
                 <BarYAxis yAxisId="left" tickFormatter={formatCurrency} />
@@ -135,11 +135,11 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             </div>
             <Activity className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="h-64 w-full">
-            <BarChart data={funnel} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
-              <Grid horizontal strokeDasharray="3 3" />
-              <BarXAxis tickFormatter={formatCurrency} />
-              <BarYAxis dataKey="stage" tick={{ fontSize: 10 }} />
+          <div className="h-72 w-full">
+            <BarChart data={funnel} layout="vertical" height={280} margin={{ top: 10, right: 25, left: 20, bottom: 10 }}>
+              <Grid horizontal={false} vertical={true} strokeDasharray="3 3" />
+              <BarXAxis type="number" tickFormatter={formatCurrency} />
+              <BarYAxis type="category" dataKey="stage" width={115} tick={{ fontSize: 11, fill: '#334155' }} />
               <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Value']} />
               <Bar dataKey="value" name="Amount (₹)" lineCap="round">
                 {funnel.map((entry: any, index: number) => (
@@ -159,7 +159,7 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             </div>
             <PieIcon className="w-4 h-4 text-purple-600" />
           </div>
-          <div className="h-64 w-full flex items-center justify-center">
+          <div className="h-72 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -193,11 +193,11 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             </div>
             <Users className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="h-64 w-full">
-            <BarChart data={topAccounts} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
-              <Grid horizontal strokeDasharray="3 3" />
-              <BarXAxis tickFormatter={formatCurrency} />
-              <BarYAxis dataKey="account" tick={{ fontSize: 10 }} />
+          <div className="h-72 w-full">
+            <BarChart data={topAccounts} layout="vertical" height={280} margin={{ top: 10, right: 25, left: 20, bottom: 10 }}>
+              <Grid horizontal={false} vertical={true} strokeDasharray="3 3" />
+              <BarXAxis type="number" tickFormatter={formatCurrency} />
+              <BarYAxis type="category" dataKey="account" width={115} tick={{ fontSize: 11, fill: '#334155' }} />
               <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Outstanding Receivable']} />
               <Bar dataKey="receivable" fill="#f59e0b" lineCap="round" />
             </BarChart>

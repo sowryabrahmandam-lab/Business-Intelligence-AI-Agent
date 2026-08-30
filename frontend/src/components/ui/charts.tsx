@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext } from 'react';
 import {
@@ -21,6 +21,7 @@ import {
 interface ChartContextProps {
   xDataKey?: string;
   data?: any[];
+  layout?: 'horizontal' | 'vertical';
 }
 
 const ChartContext = createContext<ChartContextProps>({});
@@ -30,8 +31,8 @@ export const BarChart = ({
   xDataKey,
   children,
   layout = 'horizontal',
-  height = 260,
-  margin = { top: 10, right: 10, left: 10, bottom: 20 },
+  height = 280,
+  margin,
   className = '',
 }: {
   data: any[];
@@ -42,11 +43,15 @@ export const BarChart = ({
   margin?: any;
   className?: string;
 }) => {
+  const defaultMargin = layout === 'vertical'
+    ? { top: 10, right: 30, left: 10, bottom: 10 }
+    : { top: 10, right: 10, left: 10, bottom: 25 };
+
   return (
-    <ChartContext.Provider value={{ data, xDataKey }}>
+    <ChartContext.Provider value={{ data, xDataKey, layout }}>
       <div className={`w-full ${className}`} style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <RechartsBarChart data={data} layout={layout} margin={margin}>
+          <RechartsBarChart data={data} layout={layout} margin={margin || defaultMargin}>
             {children}
           </RechartsBarChart>
         </ResponsiveContainer>
@@ -72,7 +77,11 @@ export const Bar = ({
   lineCap?: string;
   children?: React.ReactNode;
 }) => {
-  const finalRadius = lineCap === 'round' ? [6, 6, 0, 0] : radius;
+  const ctx = useContext(ChartContext);
+  let finalRadius = radius;
+  if (lineCap === 'round') {
+    finalRadius = ctx.layout === 'vertical' ? [0, 6, 6, 0] : [6, 6, 0, 0];
+  }
   return (
     <RechartsBar dataKey={dataKey} fill={fill} name={name || dataKey} radius={finalRadius} yAxisId={yAxisId}>
       {children}
@@ -82,21 +91,28 @@ export const Bar = ({
 
 export const BarXAxis = ({
   dataKey,
+  type,
   tickFormatter,
   angle,
   textAnchor,
   tick = { fontSize: 10 },
 }: {
   dataKey?: string;
+  type?: 'number' | 'category';
   tickFormatter?: (val: any) => string;
   angle?: number;
   textAnchor?: any;
   tick?: any;
 }) => {
   const ctx = useContext(ChartContext);
+  const isVertical = ctx.layout === 'vertical';
+  const finalType = type || (isVertical ? 'number' : 'category');
+  const finalDataKey = dataKey || (isVertical ? undefined : ctx.xDataKey);
+
   return (
     <RechartsXAxis
-      dataKey={dataKey || ctx.xDataKey}
+      type={finalType}
+      dataKey={finalDataKey}
       tickFormatter={tickFormatter}
       angle={angle}
       textAnchor={textAnchor}
@@ -108,7 +124,7 @@ export const BarXAxis = ({
 export const BarYAxis = ({
   dataKey,
   type,
-  width,
+  width = 110,
   tickFormatter,
   orientation = 'left',
   yAxisId = 'left',
@@ -122,11 +138,15 @@ export const BarYAxis = ({
   yAxisId?: string;
   tick?: any;
 }) => {
+  const ctx = useContext(ChartContext);
+  const isVertical = ctx.layout === 'vertical';
+  const finalType = type || (isVertical ? 'category' : 'number');
+
   return (
     <RechartsYAxis
+      type={finalType}
       dataKey={dataKey}
-      type={type}
-      width={width}
+      width={isVertical ? width : undefined}
       tickFormatter={tickFormatter}
       orientation={orientation}
       yAxisId={yAxisId}
