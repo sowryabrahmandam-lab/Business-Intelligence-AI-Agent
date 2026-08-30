@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 from typing import Dict, List, Any, Optional
 from contextlib import asynccontextmanager
@@ -187,6 +187,96 @@ def get_dashboard_metrics():
         "active_work_orders": ops.get("active_work_orders", 0),
         "amount_receivable": rev.get("amount_receivable", 0.0),
         "delayed_work_orders": ops.get("delayed_work_orders_count", 0)
+    }
+
+@app.get("/charts-data")
+def get_charts_data():
+    """Returns structured datasets for visual analytics (Funnel, Composed, Ring, Bar charts)."""
+    if state.deals_df.empty and state.wo_df.empty:
+        refresh_data()
+
+    pipe = analytics_engine.pipeline_health(state.deals_df)
+    rev = analytics_engine.revenue_analysis(state.deals_df, state.wo_df)
+    sec_data = analytics_engine.sector_analysis(state.deals_df, state.wo_df)
+    ops = analytics_engine.work_order_analysis(state.wo_df)
+
+    # 1. Funnel Data: Deal Pipeline -> Won -> Billed -> Collected -> Receivables
+    funnel = [
+        {"stage": "Total Pipeline", "value": pipe.get("total_pipeline_value", 0.0), "fill": "#3b82f6"},
+        {"stage": "Expected Value", "value": pipe.get("expected_pipeline_value", 0.0), "fill": "#6366f1"},
+        {"stage": "Closed Won", "value": rev.get("closed_won_deal_value", 0.0), "fill": "#10b981"},
+        {"stage": "Billed Value", "value": rev.get("billed_value_excl_gst", 0.0), "fill": "#8b5cf6"},
+        {"stage": "Cash Collected", "value": rev.get("collected_amount", 0.0), "fill": "#06b6d4"},
+        {"stage": "Receivables", "value": rev.get("amount_receivable", 0.0), "fill": "#f59e0b"},
+    ]
+
+    # 2. Composed Sector Data: Top 7 sectors by pipeline + billed
+    sectors_list = []
+    for s_name, s_val in sec_data.get("sectors", {}).items():
+        if s_name in ["Unknown / Unspecified"] and s_val["pipeline_value"] == 0:
+            continue
+        sectors_list.append({
+            "sector": s_name,
+            "pipeline": s_val.get("pipeline_value", 0.0),
+            "expected": s_val.get("expected_pipeline_value", 0.0),
+            "billed": s_val.get("billed_amount", 0.0),
+            "collected": s_val.get("collected_amount", 0.0),
+            "activeProjects": s_val.get("active_projects", 0),
+            "delayedProjects": s_val.get("delayed_projects", 0)
+        })
+    sectors_list.sort(key=lambda x: x["pipeline"], reverse=True)
+    top_sectors = sectors_list[:7]
+
+    # 3. Execution Status Ring / Pie Data
+    exec_colors = {
+        "Completed": "#10b981",
+        "Ongoing": "#3b82f6",
+        "In Progress": "#6366f1",
+        "Executed until current month": "#06b6d4",
+        "Not Started": "#94a3b8",
+        "Pause / struck": "#ef4444",
+        "Pending": "#f59e0b",
+        "Partial Completed": "#8b5cf6"
+    }
+    execution_pie = []
+    for st_name, st_cnt in ops.get("execution_status_breakdown", {}).items():
+        execution_pie.append({
+            "name": st_name,
+            "value": st_cnt,
+            "fill": exec_colors.get(st_name, "#64748b")
+        })
+
+    # 4. Top Accounts with Highest Receivables
+    top_ar_accounts = []
+    if not state.wo_df.empty and "amount_receivable" in state.wo_df:
+        wo_ar = state.wo_df[state.wo_df["amount_receivable"] > 0]
+        for cust, grp in wo_ar.groupby("customer_code"):
+            top_ar_accounts.append({
+                "account": cust,
+                "receivable": float(grp["amount_receivable"].sum()),
+                "sector": grp["sector"].iloc[0] if "sector" in grp else "N/A",
+                "orders_count": len(grp)
+            })
+        top_ar_accounts.sort(key=lambda x: x["receivable"], reverse=True)
+        top_ar_accounts = top_ar_accounts[:6]
+
+    # 5. Efficiency KPI Metrics
+    collection_eff = rev.get("collection_efficiency_pct") or 0.0
+    total_wo = ops.get("total_work_orders", 0)
+    completed_wo = ops.get("completed_work_orders", 0)
+    delivery_rate = round((completed_wo / total_wo * 100.0), 1) if total_wo > 0 else 0.0
+
+    return {
+        "funnel": funnel,
+        "sectors": top_sectors,
+        "execution_breakdown": execution_pie,
+        "top_ar_accounts": top_ar_accounts,
+        "gauges": {
+            "collection_efficiency_pct": collection_eff,
+            "delivery_rate_pct": delivery_rate,
+            "delayed_count": ops.get("delayed_work_orders_count", 0),
+            "active_count": ops.get("active_work_orders", 0)
+        }
     }
 
 @app.post("/chat", response_model=ChatResponse)
