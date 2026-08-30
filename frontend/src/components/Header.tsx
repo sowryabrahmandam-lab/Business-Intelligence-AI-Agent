@@ -1,7 +1,8 @@
 ﻿'use client';
 
 import React from 'react';
-import { RefreshCw, ShieldAlert, Settings, Sparkles, Activity, Layers } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { RefreshCw, ShieldAlert, Settings, Sparkles, Activity, Layers, ArrowUpRight } from 'lucide-react';
 
 interface HeaderProps {
   onSync: () => void;
@@ -23,67 +24,83 @@ export const Header: React.FC<HeaderProps> = ({
   lastSynced,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800/80 shadow-md text-white"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         {/* Left: Branding */}
         <div className="flex items-center gap-3.5">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-slate-900 text-white font-extrabold text-lg shadow-md shadow-blue-500/15 ring-1 ring-white/20">
+          <motion.div
+            whileHover={{ scale: 1.05, rotate: 3 }}
+            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-blue-600 to-purple-700 text-white font-black text-lg shadow-lg shadow-indigo-500/25 ring-1 ring-white/20"
+          >
             S
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full ring-1 ring-emerald-300"></span>
-          </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full ring-2 ring-emerald-400/40 animate-pulse"></span>
+          </motion.div>
+
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-base font-extrabold text-white tracking-tight">
                 Skylark Drones
               </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/60 shadow-2xs">
-                <Sparkles className="w-3 h-3 text-blue-600" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-xs">
+                <Sparkles className="w-3 h-3 text-indigo-400" />
                 Executive BI Copilot
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                Monday.com Live Sync
+
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 font-medium">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                Monday.com Live
               </span>
-              <span>•</span>
-              <span className="text-slate-600 font-semibold">{dealsCount} Deals</span>
-              <span>•</span>
-              <span className="text-slate-600 font-semibold">{woCount} Work Orders</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-300 font-semibold">{dealsCount} Deals</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-slate-300 font-semibold">{woCount} Work Orders</span>
             </div>
           </div>
         </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onOpenDataQuality}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800/90 hover:bg-slate-700/90 hover:text-white border border-slate-700/80 transition cursor-pointer shadow-xs"
             title="Inspect Data Integrity Audit"
           >
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden sm:inline">Data Quality</span>
-          </button>
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Data Audit</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onOpenSettings}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 transition shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800/90 hover:bg-slate-700/90 hover:text-white border border-slate-700/80 transition cursor-pointer shadow-xs"
             title="API Keys & Board Config"
           >
-            <Settings className="w-3.5 h-3.5 text-slate-600" />
-            <span className="hidden sm:inline">Settings</span>
-          </button>
+            <Settings className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden sm:inline">Config</span>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={onSync}
             disabled={isSyncing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 shadow-sm shadow-blue-600/20 transition cursor-pointer disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:from-blue-700 active:to-indigo-700 disabled:opacity-50 shadow-md shadow-blue-500/25 transition cursor-pointer disabled:cursor-not-allowed border border-blue-400/20"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Live Data'}</span>
-          </button>
+            <span>{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
+          </motion.button>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 };

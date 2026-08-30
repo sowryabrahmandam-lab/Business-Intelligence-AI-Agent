@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign, Briefcase, FileText, AlertCircle, Clock } from 'lucide-react';
 
 export interface MetricsData {
@@ -29,99 +30,109 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics, loading }) =>
     {
       title: 'Total Pipeline',
       value: formatCurrency(metrics?.total_pipeline_value),
-      subtitle: 'Open commercial deals',
+      subtitle: 'Open commercial funnel',
       icon: TrendingUp,
-      accent: 'text-blue-600',
-      iconBg: 'bg-blue-50 border-blue-100',
+      accent: 'text-blue-400',
+      iconBg: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
       pill: 'Forward Value',
-      pillBg: 'bg-blue-50 text-blue-700 border-blue-200/60',
+      pillBg: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+      glow: 'group-hover:shadow-blue-500/10',
     },
     {
       title: 'Expected Revenue',
       value: formatCurrency(metrics?.expected_revenue),
-      subtitle: 'Probability-weighted pipeline',
+      subtitle: 'Probability-weighted',
       icon: DollarSign,
-      accent: 'text-emerald-600',
-      iconBg: 'bg-emerald-50 border-emerald-100',
+      accent: 'text-emerald-400',
+      iconBg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
       pill: 'Weighted',
-      pillBg: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+      pillBg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+      glow: 'group-hover:shadow-emerald-500/10',
     },
     {
       title: 'Active Deals',
       value: metrics ? `${metrics.active_deals}` : '0',
       subtitle: 'Deals in negotiation',
       icon: Briefcase,
-      accent: 'text-indigo-600',
-      iconBg: 'bg-indigo-50 border-indigo-100',
+      accent: 'text-indigo-400',
+      iconBg: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
       pill: 'In Funnel',
-      pillBg: 'bg-indigo-50 text-indigo-700 border-indigo-200/60',
+      pillBg: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20',
+      glow: 'group-hover:shadow-indigo-500/10',
     },
     {
       title: 'Active Work Orders',
       value: metrics ? `${metrics.active_work_orders}` : '0',
-      subtitle: 'In-progress operations',
+      subtitle: 'Executing projects',
       icon: FileText,
-      accent: 'text-purple-600',
-      iconBg: 'bg-purple-50 border-purple-100',
+      accent: 'text-purple-400',
+      iconBg: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
       pill: 'Executing',
-      pillBg: 'bg-purple-50 text-purple-700 border-purple-200/60',
+      pillBg: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
+      glow: 'group-hover:shadow-purple-500/10',
     },
     {
       title: 'Receivables',
       value: formatCurrency(metrics?.amount_receivable),
       subtitle: 'Pending cash collection',
       icon: AlertCircle,
-      accent: 'text-amber-600',
-      iconBg: 'bg-amber-50 border-amber-100',
+      accent: 'text-amber-400',
+      iconBg: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
       pill: 'AR Exposure',
-      pillBg: 'bg-amber-50 text-amber-700 border-amber-200/60',
+      pillBg: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+      glow: 'group-hover:shadow-amber-500/10',
     },
     {
       title: 'Delayed Orders',
       value: metrics ? `${metrics.delayed_work_orders}` : '0',
-      subtitle: 'Past target delivery date',
+      subtitle: 'Past target date',
       icon: Clock,
-      accent: metrics && metrics.delayed_work_orders > 0 ? 'text-red-600' : 'text-slate-600',
-      iconBg: metrics && metrics.delayed_work_orders > 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200',
+      accent: metrics && metrics.delayed_work_orders > 0 ? 'text-rose-400' : 'text-slate-400',
+      iconBg: metrics && metrics.delayed_work_orders > 0 ? 'bg-rose-500/15 border-rose-500/30 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-400',
       pill: metrics && metrics.delayed_work_orders > 0 ? 'Critical' : 'Nominal',
-      pillBg: metrics && metrics.delayed_work_orders > 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200',
+      pillBg: metrics && metrics.delayed_work_orders > 0 ? 'bg-rose-500/15 text-rose-300 border-rose-500/30' : 'bg-slate-800 text-slate-400 border-slate-700',
+      glow: 'group-hover:shadow-rose-500/10',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
       {cards.map((card, i) => {
         const Icon = card.icon;
         return (
-          <div
+          <motion.div
             key={i}
-            className="group relative bg-white hover:bg-slate-50/50 p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 flex flex-col justify-between"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -3 }}
+            className={`group relative bg-slate-900/80 backdrop-blur-xl hover:bg-slate-850 p-4 rounded-2xl border border-slate-800 hover:border-slate-700 shadow-md ${card.glow} transition-all duration-300 flex flex-col justify-between`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-xl border ${card.iconBg} ${card.accent}`}>
+                <div className={`p-2 rounded-xl border ${card.iconBg}`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${card.pillBg}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${card.pillBg}`}>
                   {card.pill}
                 </span>
               </div>
-              <p className="text-xs font-semibold text-slate-500 tracking-wide uppercase">
+              <p className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">
                 {card.title}
               </p>
             </div>
 
             <div className="mt-2.5">
-              <div className="text-xl font-extrabold text-slate-900 tracking-tight">
+              <div className="text-xl font-black text-white tracking-tight">
                 {loading ? (
-                  <div className="h-7 w-20 bg-slate-200 animate-pulse rounded my-0.5"></div>
+                  <div className="h-7 w-20 bg-slate-800 animate-pulse rounded my-0.5"></div>
                 ) : (
                   card.value
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5 font-medium">{card.subtitle}</p>
+              <p className="text-[11px] text-slate-400 truncate mt-0.5 font-medium">{card.subtitle}</p>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>

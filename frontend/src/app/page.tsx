@@ -1,13 +1,14 @@
 ﻿'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { MetricCards, MetricsData } from '@/components/MetricCards';
 import { ChatInterface, Message } from '@/components/ChatInterface';
 import { VisualAnalytics } from '@/components/VisualAnalytics';
 import { DataQualityModal } from '@/components/DataQualityModal';
 import { SettingsModal } from '@/components/SettingsModal';
-import { MessageSquare, BarChart3, Download, Sparkles } from 'lucide-react';
+import { MessageSquare, BarChart3, Download, Sparkles, Activity } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -128,10 +129,11 @@ export default function HomePage() {
   };
 
   const handleExportBriefing = () => {
-    // Generate downloadable markdown executive report
     const lastAiMsg = [...messages].reverse().find((m) => m.role === 'assistant');
-    const content = lastAiMsg ? lastAiMsg.content : `# Skylark Drones Leadership Update\n\nGenerated on: ${new Date().toLocaleDateString()}\n\nLive Pipeline: ${metrics?.total_pipeline_value}\nActive Deals: ${metrics?.active_deals}`;
-    
+    const content = lastAiMsg
+      ? lastAiMsg.content
+      : `# Skylark Drones Leadership Update\n\nGenerated on: ${new Date().toLocaleDateString()}\n\nLive Pipeline: ${metrics?.total_pipeline_value}\nActive Deals: ${metrics?.active_deals}`;
+
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -142,7 +144,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-950 bg-radial-glow text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
       {/* Top Header */}
       <Header
         onSync={handleSync}
@@ -161,52 +163,91 @@ export default function HomePage() {
 
         {/* View Switcher & Actions Bar */}
         <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center bg-slate-200/80 p-1 rounded-xl shadow-inner">
+          <div className="flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-2xl border border-slate-800 shadow-inner">
             <button
               onClick={() => setActiveTab('chat')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                 activeTab === 'chat'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'text-white'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>AI Executive Chat</span>
+              {activeTab === 'chat' && (
+                <motion.div
+                  layoutId="activeTabPill"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md"
+                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Executive Copilot</span>
+              </span>
             </button>
+
             <button
               onClick={() => setActiveTab('charts')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                 activeTab === 'charts'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'text-white'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>Visual BI Charts</span>
+              {activeTab === 'charts' && (
+                <motion.div
+                  layoutId="activeTabPill"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md"
+                  transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Visual Intelligence</span>
+              </span>
             </button>
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleExportBriefing}
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg shadow-sm transition"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 bg-slate-900/90 hover:bg-slate-800 hover:text-white border border-slate-800 px-3.5 py-2 rounded-xl shadow-md transition cursor-pointer"
             title="Download Executive Markdown Report"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
             <span className="hidden sm:inline">Export Briefing (.md)</span>
-          </button>
+          </motion.button>
         </div>
 
         {/* Content View */}
-        {activeTab === 'chat' ? (
-          <ChatInterface
-            messages={messages}
-            loading={chatLoading}
-            onSendMessage={handleSendMessage}
-            onClearMessages={() => setMessages([])}
-          />
-        ) : (
-          <VisualAnalytics data={chartsData} loading={loadingCharts} />
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === 'chat' ? (
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              <ChatInterface
+                messages={messages}
+                loading={chatLoading}
+                onSendMessage={handleSendMessage}
+                onClearMessages={() => setMessages([])}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="charts"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              <VisualAnalytics data={chartsData} loading={loadingCharts} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Modals */}
