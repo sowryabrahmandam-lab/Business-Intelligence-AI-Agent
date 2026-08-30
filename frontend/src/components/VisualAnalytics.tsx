@@ -1,21 +1,21 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {
-  ResponsiveContainer,
-  ComposedChart,
+  BarChart,
   Bar,
+  BarXAxis,
+  BarYAxis,
+  Grid,
+  ChartTooltip,
+  ChartLegend,
+  ComposedChart,
   Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  CartesianGrid,
-} from 'recharts';
+  ResponsiveContainer,
+} from '@bklitui/ui/charts';
 import { TrendingUp, PieChart as PieIcon, Users, Activity, CheckCircle, Clock } from 'lucide-react';
 
 interface VisualAnalyticsProps {
@@ -108,19 +108,18 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={sectors} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="sector" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" />
-                <YAxis yAxisId="left" tickFormatter={formatCurrency} tick={{ fontSize: 10 }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
-                <Tooltip
+                <Grid horizontal strokeDasharray="3 3" />
+                <BarXAxis dataKey="sector" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" />
+                <BarYAxis yAxisId="left" tickFormatter={formatCurrency} />
+                <BarYAxis yAxisId="right" orientation="right" />
+                <ChartTooltip
                   formatter={(val: any, name?: any) =>
                     name === 'Active Projects' ? [val, name || ''] : [formatCurrency(Number(val)), name || '']
                   }
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                <Bar yAxisId="left" dataKey="pipeline" name="Pipeline (₹)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="left" dataKey="billed" name="Billed (₹)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <ChartLegend />
+                <Bar yAxisId="left" dataKey="pipeline" name="Pipeline (₹)" fill="#3b82f6" lineCap="round" />
+                <Bar yAxisId="left" dataKey="billed" name="Billed (₹)" fill="#10b981" lineCap="round" />
                 <Line yAxisId="right" type="monotone" dataKey="activeProjects" name="Active Projects" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -137,22 +136,17 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             <Activity className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={funnel} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="stage" tick={{ fontSize: 10 }} width={100} />
-                <Tooltip
-                  formatter={(val: any) => [formatCurrency(Number(val)), 'Value']}
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                />
-                <Bar dataKey="value" name="Amount (₹)" radius={[0, 6, 6, 0]}>
-                  {funnel.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <BarChart data={funnel} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
+              <Grid horizontal strokeDasharray="3 3" />
+              <BarXAxis tickFormatter={formatCurrency} />
+              <BarYAxis dataKey="stage" tick={{ fontSize: 10 }} />
+              <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Value']} />
+              <Bar dataKey="value" name="Amount (₹)" lineCap="round">
+                {funnel.map((entry: any, index: number) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
           </div>
         </div>
 
@@ -184,10 +178,7 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
                     <Cell key={`pie-cell-${index}`} fill={entry.fill} />
                   ))}
                 </Pie>
-                <Tooltip
-                  formatter={(val: any) => [`${val} orders`, 'Count']}
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                />
+                <ChartTooltip formatter={(val: any) => [`${val} orders`, 'Count']} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -203,18 +194,13 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             <Users className="w-4 h-4 text-amber-600" />
           </div>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topAccounts} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10 }} />
-                <YAxis type="category" dataKey="account" tick={{ fontSize: 10 }} width={90} />
-                <Tooltip
-                  formatter={(val: any) => [formatCurrency(Number(val)), 'Outstanding Receivable']}
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                />
-                <Bar dataKey="receivable" fill="#f59e0b" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <BarChart data={topAccounts} layout="vertical" margin={{ top: 10, right: 20, left: 30, bottom: 10 }}>
+              <Grid horizontal strokeDasharray="3 3" />
+              <BarXAxis tickFormatter={formatCurrency} />
+              <BarYAxis dataKey="account" tick={{ fontSize: 10 }} />
+              <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Outstanding Receivable']} />
+              <Bar dataKey="receivable" fill="#f59e0b" lineCap="round" />
+            </BarChart>
           </div>
         </div>
       </div>

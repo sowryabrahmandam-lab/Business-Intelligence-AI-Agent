@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@bklitui/ui/charts": [
+        "./src/components/ui/charts"
+      ],
+      "@/components/ui/charts": [
+        "./src/components/ui/charts"
       ]
     }
   },
