@@ -125,7 +125,7 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={sectors} margin={{ top: 10, right: 10, left: 10, bottom: 25 }}>
+              <ComposedChart data={sectors} margin={{ top: 10, right: 15, left: 10, bottom: 25 }}>
                 <Grid horizontal stroke="#334155" strokeDasharray="3 3" />
                 <BarXAxis dataKey="sector" tick={{ fontSize: 10, fill: '#94a3b8' }} angle={-20} textAnchor="end" />
                 <BarYAxis yAxisId="left" tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: '#94a3b8' }} />
@@ -134,11 +134,10 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
                   formatter={(val: any, name?: any) =>
                     name === 'Active Projects' ? [val, name || ''] : [formatCurrency(Number(val)), name || '']
                   }
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '12px' }}
                 />
                 <ChartLegend wrapperStyle={{ fontSize: '11px', paddingTop: '8px', color: '#cbd5e1' }} />
-                <Bar yAxisId="left" dataKey="pipeline" name="Pipeline (₹)" fill="#6366f1" lineCap="round" />
-                <Bar yAxisId="left" dataKey="billed" name="Billed (₹)" fill="#10b981" lineCap="round" />
+                <Bar yAxisId="left" dataKey="pipeline" name="Pipeline (₹)" fill="#6366f1" barSize={16} lineCap="round" />
+                <Bar yAxisId="left" dataKey="billed" name="Billed (₹)" fill="#10b981" barSize={16} lineCap="round" />
                 <Line yAxisId="right" type="monotone" dataKey="activeProjects" name="Active Projects" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -155,15 +154,12 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             <Activity className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="h-72 w-full">
-            <BarChart data={funnel} layout="vertical" height={280} margin={{ top: 10, right: 25, left: 20, bottom: 10 }}>
+            <BarChart data={funnel} layout="vertical" height={280} margin={{ top: 10, right: 30, left: 110, bottom: 25 }}>
               <Grid horizontal={false} vertical={true} stroke="#334155" strokeDasharray="3 3" />
               <BarXAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <BarYAxis type="category" dataKey="stage" width={115} tick={{ fontSize: 11, fill: '#cbd5e1' }} />
-              <ChartTooltip
-                formatter={(val: any) => [formatCurrency(Number(val)), 'Value']}
-                contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '12px' }}
-              />
-              <Bar dataKey="value" name="Amount (₹)" lineCap="round">
+              <BarYAxis type="category" dataKey="stage" width={110} tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+              <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Value']} />
+              <Bar dataKey="value" name="Amount (₹)" barSize={18} lineCap="round">
                 {funnel.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
@@ -219,15 +215,12 @@ export const VisualAnalytics: React.FC<VisualAnalyticsProps> = ({ data, loading 
             <Users className="w-4 h-4 text-amber-400" />
           </div>
           <div className="h-72 w-full">
-            <BarChart data={topAccounts} layout="vertical" height={280} margin={{ top: 10, right: 25, left: 20, bottom: 10 }}>
+            <BarChart data={topAccounts} layout="vertical" height={280} margin={{ top: 10, right: 30, left: 110, bottom: 25 }}>
               <Grid horizontal={false} vertical={true} stroke="#334155" strokeDasharray="3 3" />
               <BarXAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <BarYAxis type="category" dataKey="account" width={115} tick={{ fontSize: 11, fill: '#cbd5e1' }} />
-              <ChartTooltip
-                formatter={(val: any) => [formatCurrency(Number(val)), 'Outstanding Receivable']}
-                contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '12px' }}
-              />
-              <Bar dataKey="receivable" fill="#f59e0b" lineCap="round" />
+              <BarYAxis type="category" dataKey="account" width={110} tick={{ fontSize: 11, fill: '#cbd5e1' }} />
+              <ChartTooltip formatter={(val: any) => [formatCurrency(Number(val)), 'Outstanding Receivable']} />
+              <Bar dataKey="receivable" fill="#f59e0b" barSize={18} lineCap="round" />
             </BarChart>
           </div>
         </div>

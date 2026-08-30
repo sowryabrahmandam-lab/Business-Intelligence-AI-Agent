@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext } from 'react';
 import {
@@ -44,7 +44,7 @@ export const BarChart = ({
   className?: string;
 }) => {
   const defaultMargin = layout === 'vertical'
-    ? { top: 10, right: 30, left: 10, bottom: 10 }
+    ? { top: 10, right: 25, left: 105, bottom: 20 }
     : { top: 10, right: 10, left: 10, bottom: 25 };
 
   return (
@@ -64,8 +64,9 @@ export const Bar = ({
   dataKey,
   fill = '#3b82f6',
   name,
-  radius = [4, 4, 0, 0],
+  radius,
   yAxisId,
+  barSize = 16,
   lineCap,
   children,
 }: {
@@ -74,16 +75,24 @@ export const Bar = ({
   name?: string;
   radius?: any;
   yAxisId?: string;
+  barSize?: number;
   lineCap?: string;
   children?: React.ReactNode;
 }) => {
   const ctx = useContext(ChartContext);
   let finalRadius = radius;
-  if (lineCap === 'round') {
+  if (!finalRadius) {
     finalRadius = ctx.layout === 'vertical' ? [0, 6, 6, 0] : [6, 6, 0, 0];
   }
   return (
-    <RechartsBar dataKey={dataKey} fill={fill} name={name || dataKey} radius={finalRadius} yAxisId={yAxisId}>
+    <RechartsBar
+      dataKey={dataKey}
+      fill={fill}
+      name={name || dataKey}
+      radius={finalRadius}
+      yAxisId={yAxisId}
+      barSize={barSize}
+    >
       {children}
     </RechartsBar>
   );
@@ -95,7 +104,7 @@ export const BarXAxis = ({
   tickFormatter,
   angle,
   textAnchor,
-  tick = { fontSize: 10 },
+  tick = { fontSize: 10, fill: '#94a3b8' },
 }: {
   dataKey?: string;
   type?: 'number' | 'category';
@@ -128,7 +137,7 @@ export const BarYAxis = ({
   tickFormatter,
   orientation = 'left',
   yAxisId = 'left',
-  tick = { fontSize: 10 },
+  tick = { fontSize: 11, fill: '#cbd5e1' },
 }: {
   dataKey?: string;
   type?: 'number' | 'category';
@@ -159,7 +168,7 @@ export const Grid = ({
   horizontal = true,
   vertical = false,
   strokeDasharray = '3 3',
-  stroke = '#f1f5f9',
+  stroke = '#334155',
 }: {
   horizontal?: boolean;
   vertical?: boolean;
@@ -178,15 +187,32 @@ export const Grid = ({
 
 export const ChartTooltip = ({
   formatter,
-  contentStyle = { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' },
+  labelFormatter,
+  contentStyle = { backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #334155', color: '#fff', fontSize: '12px' },
 }: {
   formatter?: any;
+  labelFormatter?: any;
   contentStyle?: any;
 }) => {
-  return <RechartsTooltip formatter={formatter} contentStyle={contentStyle} />;
+  const customLabelFormatter = (label: any, payload?: any) => {
+    if (labelFormatter) return labelFormatter(label, payload);
+    if (payload && payload.length > 0) {
+      const item = payload[0].payload;
+      return item?.stage || item?.account || item?.sector || label;
+    }
+    return label;
+  };
+
+  return (
+    <RechartsTooltip
+      formatter={formatter}
+      labelFormatter={customLabelFormatter}
+      contentStyle={contentStyle}
+    />
+  );
 };
 
-export const ChartLegend = ({ wrapperStyle = { fontSize: '11px', paddingTop: '8px' } }: { wrapperStyle?: any }) => {
+export const ChartLegend = ({ wrapperStyle = { fontSize: '11px', paddingTop: '8px', color: '#cbd5e1' } }: { wrapperStyle?: any }) => {
   return <RechartsLegend wrapperStyle={wrapperStyle} />;
 };
 
